@@ -25,7 +25,7 @@ describe('Filter: filter', function() {
     expect(filter(items, '34').length).toBe(1);
     expect(filter(items, '34')[0]).toBe(1234);
 
-    expect(filter(items, "I don't exist").length).toBe(0);
+    expect(filter(items, 'I don\'t exist').length).toBe(0);
   });
 
 
@@ -192,6 +192,25 @@ describe('Filter: filter', function() {
   });
 
 
+  it('should allow specifying the special "match-all" property', function() {
+    var items = [
+      {foo: 'baz'},
+      {bar: 'baz'},
+      {'%': 'no dollar'}
+    ];
+
+    expect(filter(items, {$: 'baz'}).length).toBe(2);
+    expect(filter(items, {$: 'baz'}, null, '%').length).toBe(0);
+
+    expect(filter(items, {'%': 'dollar'}).length).toBe(1);
+    expect(filter(items, {$: 'dollar'}).length).toBe(1);
+    expect(filter(items, {$: 'dollar'}, null, '%').length).toBe(0);
+
+    expect(filter(items, {'%': 'baz'}).length).toBe(0);
+    expect(filter(items, {'%': 'baz'}, null, '%').length).toBe(2);
+  });
+
+
   it('should match any properties in the nested object for given deep "$" property', function() {
     var items = [{person: {name: 'Annet', email: 'annet@example.com'}},
                  {person: {name: 'Billy', email: 'me@billy.com'}},
@@ -315,7 +334,7 @@ describe('Filter: filter', function() {
     expect(filter(items, expr, true).length).toBe(1);
     expect(filter(items, expr, true)[0]).toBe(items[0]);
 
-    // Inherited function proprties
+    // Inherited function properties
     function Expr(text) {
         this.text = text;
     }
@@ -381,6 +400,7 @@ describe('Filter: filter', function() {
 
 
   it('should not be affected by `Object.prototype` when using a string expression', function() {
+    // eslint-disable-next-line no-extend-native
     Object.prototype.someProp = 'oo';
 
     var items = [
@@ -426,6 +446,23 @@ describe('Filter: filter', function() {
   });
 
 
+  it('should not throw an error if used with an array like object', function() {
+    function getArguments() {
+      return arguments;
+    }
+    var argsObj = getArguments({name: 'Misko'}, {name: 'Igor'}, {name: 'Brad'});
+
+    var nodeList = jqLite('<p><span>Misko</span><span>Igor</span><span>Brad</span></p>')[0].childNodes;
+    function nodeFilterPredicate(node) {
+      return node.innerHTML.indexOf('I') !== -1;
+    }
+
+    expect(filter(argsObj, 'i').length).toBe(2);
+    expect(filter('abc','b').length).toBe(1);
+    expect(filter(nodeList, nodeFilterPredicate).length).toBe(1);
+  });
+
+
   it('should return undefined when the array is undefined', function() {
     expect(filter(undefined, {})).toBeUndefined();
   });
@@ -438,32 +475,83 @@ describe('Filter: filter', function() {
 
 
   it('should not throw an error if property is null when comparing object', function() {
-      var items = [
-          { office:1, people: {name:'john'}},
-          { office:2, people: {name:'jane'}},
-          { office:3, people: null}
-      ];
-      var f = { };
-      expect(filter(items, f).length).toBe(3);
+    var items = [
+        { office:1, people: {name:'john'}},
+        { office:2, people: {name:'jane'}},
+        { office:3, people: null}
+    ];
+    var f = { };
+    expect(filter(items, f).length).toBe(3);
 
-      f = { people:null };
-      expect(filter(items, f).length).toBe(1);
+    f = { people:null };
+    expect(filter(items, f).length).toBe(1);
 
-      f = { people: {}};
-      expect(filter(items, f).length).toBe(2);
+    f = { people: {}};
+    expect(filter(items, f).length).toBe(2);
 
-      f = { people:{ name: '' }};
-      expect(filter(items, f).length).toBe(2);
+    f = { people:{ name: '' }};
+    expect(filter(items, f).length).toBe(2);
 
-      f = { people:{ name:'john' }};
-      expect(filter(items, f).length).toBe(1);
+    f = { people:{ name:'john' }};
+    expect(filter(items, f).length).toBe(1);
 
-      f = { people:{ name:'j' }};
-      expect(filter(items, f).length).toBe(2);
-
+    f = { people:{ name:'j' }};
+    expect(filter(items, f).length).toBe(2);
   });
 
+
+  it('should match `null` against `null` only', function() {
+    var items = [
+      {value: null},
+      {value: undefined},
+      {value: true},
+      {value: false},
+      {value: NaN},
+      {value: 42},
+      {value: 'null'},
+      {value: 'test'},
+      {value: {}},
+      {value: new Date()}
+    ];
+    var flt;
+
+    flt = null;
+    expect(filter(items, flt).length).toBe(1);
+    expect(filter(items, flt)[0]).toBe(items[0]);
+
+    flt = {value: null};
+    expect(filter(items, flt).length).toBe(1);
+    expect(filter(items, flt)[0]).toBe(items[0]);
+
+    flt = {value: undefined};
+    expect(filter(items, flt).length).toBe(items.length);
+
+    flt = {value: NaN};
+    expect(includes(filter(items, flt), items[0])).toBeFalsy();
+
+    flt = {value: false};
+    expect(includes(filter(items, flt), items[0])).toBeFalsy();
+
+    flt = '';
+    expect(includes(filter(items, flt), items[0])).toBeFalsy();
+
+    flt = {value: 'null'};
+    expect(includes(filter(items, flt), items[0])).toBeFalsy();
+  });
+
+
   describe('should support comparator', function() {
+
+    it('not convert `null` or `undefined` to string in non-strict comparison', function() {
+      var items = [
+        {value: null},
+        {value: undefined}
+      ];
+      var flt = {value: 'u'};
+
+      expect(filter(items, flt).length).toBe(0);
+    });
+
 
     it('not consider objects without a custom `toString` in non-strict comparison', function() {
       var items = [{test: {}}];
@@ -473,7 +561,7 @@ describe('Filter: filter', function() {
 
 
     it('should consider objects with custom `toString()` in non-strict comparison', function() {
-      var obj = new Date(1970, 0);
+      var obj = new Date(1970, 1);
       var items = [{test: obj}];
       expect(filter(items, '1970').length).toBe(1);
       expect(filter(items, 1970).length).toBe(1);

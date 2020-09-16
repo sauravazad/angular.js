@@ -10,9 +10,17 @@
  * @return {Object} a key/value map of the current cookies
  */
 function $$CookieReader($document) {
-  var rawDocument = $document[0];
+  var rawDocument = $document[0] || {};
   var lastCookies = {};
   var lastCookieString = '';
+
+  function safeGetCookie(rawDocument) {
+    try {
+      return rawDocument.cookie || '';
+    } catch (e) {
+      return '';
+    }
+  }
 
   function safeDecodeURIComponent(str) {
     try {
@@ -24,9 +32,10 @@ function $$CookieReader($document) {
 
   return function() {
     var cookieArray, cookie, i, index, name;
+    var currentCookieString = safeGetCookie(rawDocument);
 
-    if (rawDocument.cookie !== lastCookieString) {
-      lastCookieString = rawDocument.cookie;
+    if (currentCookieString !== lastCookieString) {
+      lastCookieString = currentCookieString;
       cookieArray = lastCookieString.split('; ');
       lastCookies = {};
 
@@ -38,7 +47,7 @@ function $$CookieReader($document) {
           // the first value that is seen for a cookie is the most
           // specific one.  values for the same cookie name that
           // follow are for less specific paths.
-          if (lastCookies[name] === undefined) {
+          if (isUndefined(lastCookies[name])) {
             lastCookies[name] = safeDecodeURIComponent(cookie.substring(index + 1));
           }
         }
@@ -50,6 +59,7 @@ function $$CookieReader($document) {
 
 $$CookieReader.$inject = ['$document'];
 
+/** @this */
 function $$CookieReaderProvider() {
   this.$get = $$CookieReader;
 }

@@ -1,3 +1,5 @@
+'use strict';
+
 angular.module('tutorials', [])
 
 .directive('docTutorialNav', function() {
@@ -5,7 +7,8 @@ angular.module('tutorials', [])
     '',
     'step_00', 'step_01', 'step_02', 'step_03', 'step_04',
     'step_05', 'step_06', 'step_07', 'step_08', 'step_09',
-    'step_10', 'step_11', 'step_12', 'the_end'
+    'step_10', 'step_11', 'step_12', 'step_13', 'step_14',
+    'the_end'
   ];
   return {
     scope: {},
@@ -19,7 +22,7 @@ angular.module('tutorials', [])
       scope.seq = seq;
       scope.prev = pages[seq];
       scope.next = pages[2 + seq];
-      scope.diffLo = seq ? (seq - 1): '0~1';
+      scope.diffLo = seq ? (seq - 1) : '0~1';
       scope.diffHi = seq;
 
       element.addClass('btn-group');
@@ -35,15 +38,15 @@ angular.module('tutorials', [])
       'step': '@docTutorialReset'
     },
     template:
-      '<p><a href="" ng-click="show=!show;$event.stopPropagation()">Workspace Reset Instructions  ➤</a></p>\n' +
+      '<p><button class="btn" ng-click="show=!show">Workspace Reset Instructions  ➤</button></p>\n' +
       '<div class="alert alert-info" ng-show="show">\n' +
       '  <p>Reset the workspace to step {{step}}.</p>' +
       '  <p><pre>git checkout -f step-{{step}}</pre></p>\n' +
-      '  <p>Refresh your browser or check out this step online: '+
+      '  <p>Refresh your browser or check out this step online: ' +
           '<a href="http://angular.github.io/angular-phonecat/step-{{step}}/app">Step {{step}} Live Demo</a>.</p>\n' +
       '</div>\n' +
       '<p>The most important changes are listed below. You can see the full diff on ' +
-        '<a ng-href="https://github.com/angular/angular-phonecat/compare/step-{{step ? (step - 1): \'0~1\'}}...step-{{step}}">GitHub</a>\n' +
+        '<a ng-href="https://github.com/angular/angular-phonecat/compare/step-{{step ? (step - 1): \'0~1\'}}...step-{{step}}" title="See diff on Github">GitHub</a>.\n' +
       '</p>'
   };
 });

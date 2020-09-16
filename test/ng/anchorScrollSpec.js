@@ -12,9 +12,9 @@ describe('$anchorScroll', function() {
         var mockedWin = {
           scrollTo: jasmine.createSpy('$window.scrollTo'),
           scrollBy: jasmine.createSpy('$window.scrollBy'),
-          document: document,
+          document: window.document,
           getComputedStyle: function(elem) {
-            return getComputedStyle(elem);
+            return window.getComputedStyle(elem);
           }
         };
 
@@ -22,7 +22,6 @@ describe('$anchorScroll', function() {
       });
     };
   }
-
 
   function addElements() {
     var elements = sliceArgs(arguments);
@@ -49,9 +48,9 @@ describe('$anchorScroll', function() {
     };
   }
 
-  function callAnchorScroll() {
+  function callAnchorScroll(hash) {
     return function($anchorScroll) {
-      $anchorScroll();
+      $anchorScroll(hash);
     };
   }
 
@@ -88,8 +87,7 @@ describe('$anchorScroll', function() {
 
     return function($window) {
       forEach(elmSpy, function(spy, id) {
-        var count = map[id] || 0;
-        expect(spy.callCount).toBe(count);
+        expect(spy).toHaveBeenCalledTimes(map[id] || 0);
       });
       expect($window.scrollTo).not.toHaveBeenCalled();
     };
@@ -107,7 +105,7 @@ describe('$anchorScroll', function() {
     return function() {
       spyOn(window, 'jqLiteDocumentLoaded');
       if (fake) {
-        window.jqLiteDocumentLoaded.andCallFake(fake);
+        window.jqLiteDocumentLoaded.and.callFake(fake);
       }
     };
   }
@@ -124,7 +122,7 @@ describe('$anchorScroll', function() {
 
   function fireWindowLoadEvent() {
     return function($browser) {
-      var callback = window.jqLiteDocumentLoaded.mostRecentCall.args[0];
+      var callback = window.jqLiteDocumentLoaded.calls.mostRecent().args[0];
       callback();
       $browser.defer.flush();
     };
@@ -141,50 +139,132 @@ describe('$anchorScroll', function() {
     beforeEach(createMockWindow());
 
 
-    it('should scroll to top of the window if empty hash', inject(
-      changeHashAndScroll(''),
-      expectScrollingToTop));
+    describe('and implicitly using `$location.hash()`', function() {
+
+      it('should scroll to top of the window if empty hash', inject(
+        changeHashAndScroll(''),
+        expectScrollingToTop));
 
 
-    it('should not scroll if hash does not match any element', inject(
-      addElements('id=one', 'id=two'),
-      changeHashAndScroll('non-existing'),
-      expectNoScrolling()));
+      it('should not scroll if hash does not match any element', inject(
+        addElements('id=one', 'id=two'),
+        changeHashAndScroll('non-existing'),
+        expectNoScrolling()));
 
 
-    it('should scroll to anchor element with name', inject(
-      addElements('a name=abc'),
-      changeHashAndScroll('abc'),
-      expectScrollingTo('a name=abc')));
+      it('should scroll to anchor element with name', inject(
+        addElements('a name=abc'),
+        changeHashAndScroll('abc'),
+        expectScrollingTo('a name=abc')));
 
 
-    it('should not scroll to other than anchor element with name', inject(
-      addElements('input name=xxl', 'select name=xxl', 'form name=xxl'),
-      changeHashAndScroll('xxl'),
-      expectNoScrolling()));
+      it('should not scroll to other than anchor element with name', inject(
+        addElements('input name=xxl', 'select name=xxl', 'form name=xxl'),
+        changeHashAndScroll('xxl'),
+        expectNoScrolling()));
 
 
-    it('should scroll to anchor even if other element with given name exist', inject(
-      addElements('input name=some', 'a name=some'),
-      changeHashAndScroll('some'),
-      expectScrollingTo('a name=some')));
+      it('should scroll to anchor even if other element with given name exist', inject(
+        addElements('input name=some', 'a name=some'),
+        changeHashAndScroll('some'),
+        expectScrollingTo('a name=some')));
 
 
-    it('should scroll to element with id with precedence over name', inject(
-      addElements('name=abc', 'id=abc'),
-      changeHashAndScroll('abc'),
-      expectScrollingTo('id=abc')));
+      it('should scroll to element with id with precedence over name', inject(
+        addElements('name=abc', 'id=abc'),
+        changeHashAndScroll('abc'),
+        expectScrollingTo('id=abc')));
 
 
-    it('should scroll to top if hash == "top" and no matching element', inject(
-      changeHashAndScroll('top'),
-      expectScrollingToTop));
+      it('should scroll to top if hash === "top" and no matching element', inject(
+        changeHashAndScroll('top'),
+        expectScrollingToTop));
 
 
-    it('should scroll to element with id "top" if present', inject(
-      addElements('id=top'),
-      changeHashAndScroll('top'),
-      expectScrollingTo('id=top')));
+      it('should scroll to element with id "top" if present', inject(
+        addElements('id=top'),
+        changeHashAndScroll('top'),
+        expectScrollingTo('id=top')));
+    });
+
+
+    describe('and specifying a hash', function() {
+
+      it('should ignore the `hash` argument if not a string', inject(
+        spyOnJQLiteDocumentLoaded(),
+        addElements('id=one', 'id=two'),
+        changeHashTo('one'),   // won't scroll since `jqLiteDocumentLoaded()` is spied upon
+        callAnchorScroll({}),
+        expectScrollingTo('id=one'),
+        unspyOnJQLiteDocumentLoaded()));
+
+
+      it('should ignore `$location.hash()` if `hash` is passed as argument', inject(
+        spyOnJQLiteDocumentLoaded(),
+        addElements('id=one', 'id=two'),
+        changeHashTo('one'),   // won't scroll since `jqLiteDocumentLoaded()` is spied upon
+        callAnchorScroll('two'),
+        expectScrollingTo('id=two'),
+        unspyOnJQLiteDocumentLoaded()));
+
+
+      it('should scroll to top of the window if empty hash', inject(
+        callAnchorScroll(''),
+        expectScrollingToTop));
+
+
+      it('should not scroll if hash does not match any element', inject(
+        addElements('id=one', 'id=two'),
+        callAnchorScroll('non-existing'),
+        expectNoScrolling()));
+
+
+      it('should scroll to anchor element with name', inject(
+        addElements('a name=abc'),
+        callAnchorScroll('abc'),
+        expectScrollingTo('a name=abc')));
+
+
+      it('should not scroll to other than anchor element with name', inject(
+        addElements('input name=xxl', 'select name=xxl', 'form name=xxl'),
+        callAnchorScroll('xxl'),
+        expectNoScrolling()));
+
+
+      it('should scroll to anchor even if other element with given name exist', inject(
+        addElements('input name=some', 'a name=some'),
+        callAnchorScroll('some'),
+        expectScrollingTo('a name=some')));
+
+
+      it('should scroll to element with id with precedence over name', inject(
+        addElements('name=abc', 'id=abc'),
+        callAnchorScroll('abc'),
+        expectScrollingTo('id=abc')));
+
+
+      it('should scroll to top if hash === "top" and no matching element', inject(
+        callAnchorScroll('top'),
+        expectScrollingToTop));
+
+
+      it('should scroll to element with id "top" if present', inject(
+        addElements('id=top'),
+        callAnchorScroll('top'),
+        expectScrollingTo('id=top')));
+
+
+      it('should scroll to element with id "7" if present, with a given hash of type number', inject(
+        addElements('id=7'),
+        callAnchorScroll(7),
+        expectScrollingTo('id=7')));
+
+
+      it('should scroll to element with id "7" if present, with a given hash of type string', inject(
+        addElements('id=7'),
+        callAnchorScroll('7'),
+        expectScrollingTo('id=7')));
+    });
   });
 
 
@@ -313,10 +393,10 @@ describe('$anchorScroll', function() {
 
       return function($rootScope, $window) {
         inject(expectScrollingTo(identifierCountMap));
-        expect($window.scrollBy.callCount).toBe(list.length);
+        expect($window.scrollBy).toHaveBeenCalledTimes(list.length);
         forEach(list, function(offset, idx) {
           // Due to sub-pixel rendering, there is a +/-1 error margin in the actual offset
-          var args = $window.scrollBy.calls[idx].args;
+          var args = $window.scrollBy.calls.argsFor(idx);
           expect(args[0]).toBe(0);
           expect(Math.abs(offset + args[1])).toBeLessThan(1);
         });

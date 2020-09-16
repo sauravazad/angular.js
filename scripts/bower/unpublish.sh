@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script for removing tags from the Angular bower repos
+# Script for removing tags from the AngularJS bower repos
 
 echo "#################################"
 echo "#### Untag bower ################"
@@ -13,21 +13,6 @@ ARG_DEFS=(
 
 function init {
   TMP_DIR=$(resolveDir ../../tmp)
-  REPOS=(
-    angular
-    angular-animate
-    angular-aria
-    angular-cookies
-    angular-i18n
-    angular-loader
-    angular-messages
-    angular-mocks
-    angular-route
-    angular-resource
-    angular-sanitize
-    angular-scenario
-    angular-touch
-  )
 }
 
 function prepare {
@@ -53,4 +38,5 @@ function publish {
   done
 }
 
+source $(dirname $0)/repos.inc
 source $(dirname $0)/../utils.inc

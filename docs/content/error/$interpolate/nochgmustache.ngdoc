@@ -4,7 +4,7 @@
 @description
 
 You have redefined `$interpolate.startSymbol`/`$interpolate.endSymbol` and also
-loaded the `ngMessageFormat` module (provided by angular-messageFormat.min.js)
+loaded the `ngMessageFormat` module (provided by angular-message-format.min.js)
 while creating your injector.
 
 `ngMessageFormat` currently does not support redefinition of the
@@ -14,4 +14,4 @@ future commit and the github issue will help gauge urgency.
 
 For more information about the MessageFormat syntax in interpolation
 expressions, please refer to MessageFormat extensions section at
-{@link guide/i18n#MessageFormat Angular i18n MessageFormat}
+{@link guide/i18n#MessageFormat AngularJS i18n MessageFormat}
